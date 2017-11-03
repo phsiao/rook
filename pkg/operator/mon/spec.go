@@ -23,6 +23,7 @@ import (
 	"github.com/rook/rook/pkg/operator/k8sutil"
 	"k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/kubelet/apis"
 )
@@ -118,6 +119,9 @@ func (c *Cluster) makeMonPod(config *monConfig, nodeName string) *v1.Pod {
 }
 
 func (c *Cluster) monContainer(config *monConfig, fsid string) v1.Container {
+	scRunAsUser := int64(0)
+	scRunAsNonRoot := false
+	scReadOnlyRootFilesystem := false
 	return v1.Container{
 		Args: []string{
 			"mon",
@@ -147,6 +151,17 @@ func (c *Cluster) monContainer(config *monConfig, fsid string) v1.Container {
 			SecretEnvVar(),
 			AdminSecretEnvVar(),
 			k8sutil.ConfigOverrideEnvVar(),
+		},
+		SecurityContext: &v1.SecurityContext{
+			RunAsUser:              &scRunAsUser,
+			RunAsNonRoot:           &scRunAsNonRoot,
+			ReadOnlyRootFilesystem: &scReadOnlyRootFilesystem,
+		},
+		Resources: v1.ResourceRequirements{
+			Requests: v1.ResourceList{
+				v1.ResourceName(v1.ResourceCPU):    resource.MustParse("1"),
+				v1.ResourceName(v1.ResourceMemory): resource.MustParse("1Gi"),
+			},
 		},
 	}
 }

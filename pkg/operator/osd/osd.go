@@ -161,10 +161,19 @@ func (c *Cluster) podTemplateSpec(devices []Device, directories []Directory, sel
 	}
 
 	// create volume config for the data dir and /dev so the pod can access devices on the host
-	volumes := []v1.Volume{
-		{Name: k8sutil.DataDirVolume, VolumeSource: dataDirSource},
-		{Name: "devices", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/dev"}}},
-		k8sutil.ConfigOverrideVolume(),
+	// but if empty volume is used for dataDirHostPath, also does an emptyDir
+	if c.dataDirHostPath != "" {
+		volumes := []v1.Volume{
+			{Name: k8sutil.DataDirVolume, VolumeSource: dataDirSource},
+			{Name: "devices", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/dev"}}},
+			k8sutil.ConfigOverrideVolume(),
+		}
+	} else {
+		volumes := []v1.Volume{
+			{Name: k8sutil.DataDirVolume, VolumeSource: dataDirSource},
+			{Name: "devices", VolumeSource: v1.VolumeSource{EmptyDir: &v1.EmptyDirVolumeSource{}}},
+			k8sutil.ConfigOverrideVolume(),
+		}
 	}
 
 	// add each OSD directory as another host path volume source

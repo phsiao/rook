@@ -241,10 +241,13 @@ func (c *Cluster) osdContainer(devices []Device, directories []Directory, select
 		envVars = append(envVars, metadataDeviceEnvVar(selection.MetadataDevice))
 	}
 
-	volumeMounts := []v1.VolumeMount{
-		{Name: k8sutil.DataDirVolume, MountPath: k8sutil.DataDir},
-		{Name: "devices", MountPath: "/dev"},
-		k8sutil.ConfigOverrideMount(),
+	volumeMounts := []v1.VolumeMount{}
+	if c.dataDirHostPath != "" {
+		volumeMounts = []v1.VolumeMount{
+			{Name: k8sutil.DataDirVolume, MountPath: k8sutil.DataDir},
+			{Name: "devices", MountPath: "/dev"},
+			k8sutil.ConfigOverrideMount(),
+		}
 	}
 
 	if len(directories) > 0 {

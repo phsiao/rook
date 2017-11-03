@@ -32,6 +32,7 @@ import (
 	extensions "k8s.io/api/extensions/v1beta1"
 	"k8s.io/api/rbac/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
@@ -159,6 +160,9 @@ func (c *Cluster) makeDeployment() *extensions.Deployment {
 }
 
 func (c *Cluster) apiContainer() v1.Container {
+	scRunAsUser := int64(0)
+	scRunAsNonRoot := false
+	scReadOnlyRootFilesystem := false
 
 	return v1.Container{
 		Args: []string{
@@ -180,6 +184,17 @@ func (c *Cluster) apiContainer() v1.Container {
 			opmon.AdminSecretEnvVar(),
 			opmon.EndpointEnvVar(),
 			opmon.ClusterNameEnvVar(c.Namespace),
+		},
+		SecurityContext: &v1.SecurityContext{
+			RunAsUser:              &scRunAsUser,
+			RunAsNonRoot:           &scRunAsNonRoot,
+			ReadOnlyRootFilesystem: &scReadOnlyRootFilesystem,
+		},
+		Resources: v1.ResourceRequirements{
+			Requests: v1.ResourceList{
+				v1.ResourceName(v1.ResourceCPU):    resource.MustParse("1"),
+				v1.ResourceName(v1.ResourceMemory): resource.MustParse("1Gi"),
+			},
 		},
 	}
 }

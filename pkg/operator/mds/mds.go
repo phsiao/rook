@@ -32,6 +32,7 @@ import (
 	"k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -160,6 +161,9 @@ func (f *Filesystem) makeDeployment(filesystemID, version string, hostNetwork bo
 }
 
 func (f *Filesystem) mdsContainer(filesystemID, version string) v1.Container {
+	scRunAsUser := int64(0)
+	scRunAsNonRoot := false
+	scReadOnlyRootFilesystem := false
 
 	return v1.Container{
 		Args: []string{
@@ -182,6 +186,17 @@ func (f *Filesystem) mdsContainer(filesystemID, version string) v1.Container {
 			k8sutil.PodIPEnvVar(k8sutil.PrivateIPEnvVar),
 			k8sutil.PodIPEnvVar(k8sutil.PublicIPEnvVar),
 			k8sutil.ConfigOverrideEnvVar(),
+		},
+		SecurityContext: &v1.SecurityContext{
+			RunAsUser:              &scRunAsUser,
+			RunAsNonRoot:           &scRunAsNonRoot,
+			ReadOnlyRootFilesystem: &scReadOnlyRootFilesystem,
+		},
+		Resources: v1.ResourceRequirements{
+			Requests: v1.ResourceList{
+				v1.ResourceName(v1.ResourceCPU):    resource.MustParse("1"),
+				v1.ResourceName(v1.ResourceMemory): resource.MustParse("1Gi"),
+			},
 		},
 	}
 }

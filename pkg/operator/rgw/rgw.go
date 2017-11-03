@@ -32,6 +32,7 @@ import (
 	"k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -355,6 +356,10 @@ func (s *ObjectStore) startDaemonset(context *clusterd.Context, version string, 
 
 func (s *ObjectStore) rgwContainer(version string) v1.Container {
 
+	scRunAsUser := int64(0)
+	scRunAsNonRoot := false
+	scReadOnlyRootFilesystem := false
+
 	container := v1.Container{
 		Args: []string{
 			"rgw",
@@ -378,6 +383,17 @@ func (s *ObjectStore) rgwContainer(version string) v1.Container {
 			opmon.EndpointEnvVar(),
 			opmon.SecretEnvVar(),
 			k8sutil.ConfigOverrideEnvVar(),
+		},
+		SecurityContext: &v1.SecurityContext{
+			RunAsUser:              &scRunAsUser,
+			RunAsNonRoot:           &scRunAsNonRoot,
+			ReadOnlyRootFilesystem: &scReadOnlyRootFilesystem,
+		},
+		Resources: v1.ResourceRequirements{
+			Requests: v1.ResourceList{
+				v1.ResourceName(v1.ResourceCPU):    resource.MustParse("1"),
+				v1.ResourceName(v1.ResourceMemory): resource.MustParse("1Gi"),
+			},
 		},
 	}
 
